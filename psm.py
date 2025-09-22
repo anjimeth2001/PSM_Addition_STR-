@@ -5,7 +5,11 @@ import plotly.graph_objects as go
 import networkx as nx
 from st_aggrid import AgGrid, GridOptionsBuilder  # For interactive tables
 
-st.set_page_config(page_title="Datacolor - Production Smart Match (PSM) Addition related analysis", layout="wide")
+# ---------- PAGE CONFIG ----------
+st.set_page_config(
+    page_title="Datacolor - Production Smart Match (PSM) Addition related analysis",
+    layout="wide"
+)
 
 # ---------- DEFAULT ZOOM TO 80% ----------
 st.markdown(
@@ -18,6 +22,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 st.title("Datacolor - Production Smart Match (PSM) Addition related analysis")
 
 # ---------- CONFIG: exact expected column names ----------
@@ -29,7 +34,6 @@ SM_USED_COL = "SM add used by GL?"
 HAD_TO_USE_COL = "HAD TO USE?"
 PSM_POINTS = "No. of PSM Points Available"
 
-# Additional columns for detailed table
 RECIPE_COL = "RECIPE DYESTUFF ORDER"
 TOTAL_DYE_COL = "TOTAL DYE DEPTH (%)"
 LR_COL = "L/R"
@@ -39,7 +43,7 @@ PRIMARY_DE_COL = "Primary dE Value"
 SOP_COL = "Standard SOP? (Not altered by Wicky)"
 DYES_COUNT_COL = "No.of Main Dyes"
 
-# ---------- File Upload ----------
+# ---------- FILE UPLOAD ----------
 uploaded = st.file_uploader(
     "Upload Excel (must contain 'Ex - Main Recipe Analysis' & 'Ex - SM Add Analysis')",
     type=["xlsx", "xls"]
@@ -54,7 +58,7 @@ if not required_sheets.issubset(set(xls.sheet_names)):
     st.error(f"Excel must contain sheets: {required_sheets}. Found: {xls.sheet_names}")
     st.stop()
 
-# ---------- Load & merge ----------
+# ---------- LOAD & MERGE ----------
 main_df = pd.read_excel(xls, sheet_name="Ex - Main Recipe Analysis")
 sm_df = pd.read_excel(xls, sheet_name="Ex - SM Add Analysis")
 
@@ -74,20 +78,15 @@ df = pd.merge(
 df = df.drop_duplicates(subset=[BATCH_COL], keep="first").reset_index(drop=True)
 data = df.copy()
 
-# ---------- Column Normalization ----------
+# ---------- COLUMN NORMALIZATION ----------
 if SHADE_COL in data.columns:
-    data[SHADE_COL] = (
-        data[SHADE_COL]
-        .astype(str)
-        .str.replace(r"\.0$", "", regex=True)
-        .str.strip()
-    )
+    data[SHADE_COL] = data[SHADE_COL].astype(str).str.replace(r"\.0$", "", regex=True).str.strip()
 
 for c in [QUALITY_COL, MACHINE_COL, SM_USED_COL, HAD_TO_USE_COL]:
     if c in data.columns:
         data[c] = data[c].astype(str).str.strip().str.upper()
 
-# ---------- Sidebar filters ----------
+# ---------- SIDEBAR FILTERS ----------
 st.sidebar.header("Select Shade & Quality")
 all_shades = data[SHADE_COL].dropna().unique().tolist()
 
@@ -118,7 +117,7 @@ selected_qualities = st.sidebar.multiselect(
     "Quality (choose one or more)", options=qualities, default=qualities
 )
 
-# ---------- Helpers ----------
+# ---------- HELPER FUNCTIONS ----------
 def compute_machine_summary(df_subset):
     rows = []
     machines = df_subset[MACHINE_COL].dropna().unique().tolist()
@@ -155,9 +154,7 @@ def show_machine_metrics_and_charts(df_subset, title=""):
     total_runs = int(machine_summary["Total Runs"].sum())
     total_gl_used = int(machine_summary["GL Used (count)"].sum())
     overall_gl_used_pct = round(100 * total_gl_used / total_runs, 1) if total_runs > 0 else 0
-    overall_gl_not_used_pct = (
-        round(100 * (1 - (total_gl_used / total_runs)), 1) if total_runs > 0 else 0
-    )
+    overall_gl_not_used_pct = round(100 * (1 - (total_gl_used / total_runs)), 1) if total_runs > 0 else 0
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Runs", total_runs)
@@ -165,7 +162,7 @@ def show_machine_metrics_and_charts(df_subset, title=""):
     col3.metric("GL Not Used SM Adds (overall %)", f"{overall_gl_not_used_pct}%")
     col4.metric("Machines", machine_summary.shape[0])
 
-    # ---------- Tree plot ----------
+    # ---------- TREE PLOT ----------
     st.subheader("Quality-wise SM Point Usage vs Outcome")
 
     tree_df = df_subset.copy()
@@ -224,7 +221,6 @@ def show_machine_metrics_and_charts(df_subset, title=""):
 
         outcome_node_id = f"outcome_{quality}_{machine}_{sm_group}_{outcome}"
 
-        # --- outcome hover details ---
         outcome_rows = tree_df[
             (tree_df[QUALITY_COL] == quality)
             & (tree_df[MACHINE_COL] == machine)
@@ -258,7 +254,7 @@ def show_machine_metrics_and_charts(df_subset, title=""):
         G.add_edge(f"machine_{quality}_{machine}", f"usage_{quality}_{machine}_{sm_group}")
         G.add_edge(f"usage_{quality}_{machine}_{sm_group}", outcome_node_id)
 
-    # Layout
+    # ---------- Layout & Plot ----------
     pos, levels = {}, {}
     for node, data in G.nodes(data=True):
         levels.setdefault(data["level"], []).append(node)
@@ -317,7 +313,7 @@ def show_machine_metrics_and_charts(df_subset, title=""):
                 marker=dict(size=node_sizes, color=colors[node_type], line=dict(width=2, color="white")),
                 name=node_type.capitalize(),
                 textfont=dict(size=12, color="black", family="Arial, sans-serif"),
-                hoverlabel=dict(font_size=16 if node_type=="outcome" else 12)  # <-- outcome hover bigger
+                hoverlabel=dict(font_size=16 if node_type=="outcome" else 12)
             )
 
     fig_tree = go.Figure(data=[edge_trace] + list(node_traces.values()))
@@ -337,8 +333,7 @@ def show_machine_metrics_and_charts(df_subset, title=""):
     )
     st.plotly_chart(fig_tree, use_container_width=True)
 
-
-# ---------- Apply filters and display ----------
+# ---------- APPLY FILTERS ----------
 filtered = data.copy()
 if selected_shade:
     filtered = filtered[filtered[SHADE_COL] == selected_shade]
