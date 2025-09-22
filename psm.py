@@ -253,7 +253,7 @@ def show_machine_metrics_and_charts(df_subset, title=""):
 
     for level, nodes in levels.items():
         for i, node in enumerate(nodes):
-            horizontal_spacing = 2.0
+            horizontal_spacing = 3.5
             x_pos = (i - len(nodes) / 2) * horizontal_spacing
             pos[node] = (x_pos, -level)
 
