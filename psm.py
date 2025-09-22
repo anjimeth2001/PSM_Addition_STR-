@@ -304,7 +304,7 @@ def show_machine_metrics_and_charts(df_subset, title=""):
                 hovertext=node_info,
                 marker=dict(size=node_sizes, color=colors[node_type], line=dict(width=2, color="white")),
                 name=node_type.capitalize(),
-                textfont=dict(size=12, color="black", family="Arial, sans-serif"),
+                textfont=dict(size=10, color="black", family="Arial, sans-serif"),
                 hoverlabel=dict(font_size=16 if node_type=="outcome" else 12)  # <-- outcome hover bigger
             )
 
