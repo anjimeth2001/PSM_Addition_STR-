@@ -5,8 +5,8 @@ import plotly.graph_objects as go
 import networkx as nx
 from st_aggrid import AgGrid, GridOptionsBuilder  # For interactive tables
 
-st.set_page_config(page_title="Datacolor - Production Smart Match (PSM) Addition related analysis", layout="wide")
-st.title("Datacolor - Production Smart Match (PSM) Addition related analysis")
+st.set_page_config(page_title="Datacolor - PSM Addition related analysis", layout="wide")
+st.title("Datacolor - PSM Addition related analysis")
 
 # ---------- CONFIG: exact expected column names ----------
 SHADE_COL = "SHADE No."
@@ -304,7 +304,7 @@ def show_machine_metrics_and_charts(df_subset, title=""):
                 hovertext=node_info,
                 marker=dict(size=node_sizes, color=colors[node_type], line=dict(width=2, color="white")),
                 name=node_type.capitalize(),
-                textfont=dict(size=10, color="black", family="Arial, sans-serif"),
+                textfont=dict(size=10, color="black", family="Bebas Neue"),
                 hoverlabel=dict(font_size=16 if node_type=="outcome" else 12)  # <-- outcome hover bigger
             )
 
