@@ -6,6 +6,18 @@ import networkx as nx
 from st_aggrid import AgGrid, GridOptionsBuilder  # For interactive tables
 
 st.set_page_config(page_title="Datacolor - Production Smart Match (PSM) Addition related analysis", layout="wide")
+
+# ---------- DEFAULT ZOOM TO 80% ----------
+st.markdown(
+    """
+    <style>
+    html, body, .main {
+        zoom: 0.8;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 st.title("Datacolor - Production Smart Match (PSM) Addition related analysis")
 
 # ---------- CONFIG: exact expected column names ----------
