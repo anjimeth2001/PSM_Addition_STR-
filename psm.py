@@ -78,7 +78,7 @@ def draw_tree(df, mode="Shade", root_name="Root"):
     total_count = len(tree_df)
     G = nx.DiGraph()
     G.add_node("Root", level=0, node_type="root",
-               label=f"{root_name}\n({total_count}, 100%)",
+               label=f"{root_name}\n({total_count})",
                count=total_count,
                color="#FF6B6B")
 
@@ -121,10 +121,10 @@ def draw_tree(df, mode="Shade", root_name="Root"):
                 "usage_total"
             ].values[0]
 
-            quality_label = f"{quality}\n({quality_total}, {round((quality_total/total_count)*100, 1)}%)"
-            machine_label = f"{machine}\n({machine_total}, {round((machine_total/quality_total)*100, 1)}%)"
-            usage_label = f"{sm_group}\n({usage_total}, {round((usage_total/machine_total)*100, 1)}%)"
-            outcome_label = f"{outcome}\n({count}, {round((count/usage_total)*100, 1)}%)"
+            quality_label = f"{quality}\n({quality_total})"
+            machine_label = f"{machine}\n({machine_total})"
+            usage_label = f"{sm_group}\n({usage_total})"
+            outcome_label = f"{outcome}\n({count})"
 
             outcome_node = f"outcome_{quality}_{machine}_{sm_group}_{outcome}"
 
@@ -187,10 +187,10 @@ def draw_tree(df, mode="Shade", root_name="Root"):
                 "usage_total"
             ].values[0]
 
-            shade_label = f"{shade}\n({shade_total}, {round((shade_total/total_count)*100,1)}%)"
-            quality_label = f"{quality}\n({shade_quality_total}, {round((shade_quality_total/shade_total)*100,1)}%)"
-            usage_label = f"{sm_group}\n({usage_total}, {round((usage_total/shade_quality_total)*100,1)}%)"
-            outcome_label = f"{outcome}\n({count}, {round((count/usage_total)*100,1)}%)"
+            shade_label = f"{shade}\n({shade_total})"
+            quality_label = f"{quality}\n({shade_quality_total})"
+            usage_label = f"{sm_group}\n({usage_total})"
+            outcome_label = f"{outcome}\n({count})"
 
             outcome_node = f"outcome_{shade}_{quality}_{sm_group}_{outcome}"
 
@@ -354,109 +354,96 @@ elif mode == "Machine":
     draw_tree(filtered, mode="Machine", root_name=f"{selected_machine}")
 
 
-# ---------- L/R Distribution Scatter Plot ----------
-#st.subheader("L/R Distribution")
-# Make sure L/R column is numeric
-filtered[LR_COL] = pd.to_numeric(filtered[LR_COL], errors='coerce')
+import plotly.graph_objects as go
 
-# Sort by Batch No for x-axis
-filtered_sorted = filtered.sort_values(BATCH_COL)
+# ---------- Convert numeric columns ----------
+for col in [LR_COL, TOTAL_DYE_COL, PRIMARY_DE_COL]:
+    filtered[col] = pd.to_numeric(filtered[col], errors='coerce')
 
+# ---------- Determine x-axis ----------
+if mode == "Machine":
+    x_col = SHADE_COL  # x-axis = shade numbers
+    x_title = "Shade No"
+elif mode == "Shade":
+    x_col = MACHINE_COL  # x-axis = machine numbers
+    x_title = "Machine"
+
+# Convert x-axis to string (to treat as categorical, exact numbers)
+filtered['x_str'] = filtered[x_col].astype(str)
+
+# ---------- L/R Distribution ----------
 fig_lr = go.Figure()
-
 fig_lr.add_trace(go.Scatter(
-    x=filtered_sorted[BATCH_COL],
-    y=filtered_sorted[LR_COL],
-    mode='markers+lines',
+    x=filtered['x_str'],
+    y=filtered[LR_COL],
+    mode='markers',
     marker=dict(size=8, color='#1f77b4'),
     line=dict(color='#1f77b4', width=1),
-    text=[f"Batch: {b}<br>L/R: {lr}" for b, lr in zip(filtered_sorted[BATCH_COL], filtered_sorted[LR_COL])],
+    text=[f"Batch: {b}<br>L/R: {lr}<br>{x_col}: {xv}" 
+          for b, lr, xv in zip(filtered[BATCH_COL], filtered[LR_COL], filtered['x_str'])],
     hoverinfo='text'
 ))
-
 fig_lr.update_layout(
     title="L/R Distribution",
-    xaxis_title="Batch No",
+    xaxis_title=x_title,
     yaxis_title="L/R Value",
-    xaxis=dict(tickangle=-45),
+    xaxis=dict(type='category', tickangle=-45),  # categorical x-axis
     height=450,
     plot_bgcolor="white",
     hovermode="closest"
 )
-
-
-# ---------- Add horizontal red lines ----------
-fig_lr.add_hline(y=10, line_dash="dash", line_color="red", annotation_text="⬆️ Normal ", annotation_position="top left",line_width=1)
-fig_lr.add_hline(y=20, line_dash="dash", line_color="red", annotation_text="⬆️ High L/R ", annotation_position="top left",line_width=1)
-
-
+fig_lr.add_hline(y=10, line_dash="dash", line_color="red",
+                 annotation_text="⬆️ Normal", annotation_position="top left", line_width=1)
+fig_lr.add_hline(y=20, line_dash="dash", line_color="red",
+                 annotation_text="⬆️ High L/R", annotation_position="top left", line_width=1)
 st.plotly_chart(fig_lr, use_container_width=True)
 
-# ---------- Total Dye Depth Distribution Scatter Plot ----------
-#st.subheader("TOTAL DYE DEPTH (%) Distribution")
-# Make sure L/R column is numeric
-filtered[TOTAL_DYE_COL] = pd.to_numeric(filtered[TOTAL_DYE_COL], errors='coerce')
-
-# Sort by Batch No for x-axis
-filtered_sorted = filtered.sort_values(BATCH_COL)
-
-fig_lr = go.Figure()
-
-fig_lr.add_trace(go.Scatter(
-    x=filtered_sorted[BATCH_COL],
-    y=filtered_sorted[TOTAL_DYE_COL],
-    mode='markers+lines',
+# ---------- Total Dye Depth (%) ----------
+fig_td = go.Figure()
+fig_td.add_trace(go.Scatter(
+    x=filtered['x_str'],
+    y=filtered[TOTAL_DYE_COL],
+    mode='markers',
     marker=dict(size=8, color='#1f77b4'),
     line=dict(color='#1f77b4', width=1),
-    text=[f"Batch: {b}<br>TOTAL DYE DEPTH (%): {lr}" for b, lr in zip(filtered_sorted[BATCH_COL], filtered_sorted[TOTAL_DYE_COL])],
+    text=[f"Batch: {b}<br>Total Dye Depth: {td}<br>{x_col}: {xv}" 
+          for b, td, xv in zip(filtered[BATCH_COL], filtered[TOTAL_DYE_COL], filtered['x_str'])],
     hoverinfo='text'
 ))
-
-fig_lr.update_layout(
-    title="TOTAL DYE DEPTH (%) Distribution",
-    xaxis_title="Batch No",
-    yaxis_title="TOTAL DYE DEPTH (%)",
-    xaxis=dict(tickangle=-45),
+fig_td.update_layout(
+    title="Total Dye Depth (%) Distribution",
+    xaxis_title=x_title,
+    yaxis_title="Total Dye Depth (%)",
+    xaxis=dict(type='category', tickangle=-45),
     height=450,
     plot_bgcolor="white",
     hovermode="closest"
 )
+st.plotly_chart(fig_td, use_container_width=True)
 
-st.plotly_chart(fig_lr, use_container_width=True)
-
-# ---------- Primary dE Value Distribution Scatter Plot ----------PRIMARY_DE_COL = "Primary dE Value"
-#st.subheader("Primary dE Value Distribution")
-# Make sure L/R column is numeric
-filtered[PRIMARY_DE_COL] = pd.to_numeric(filtered[PRIMARY_DE_COL], errors='coerce')
-
-# Sort by Batch No for x-axis
-filtered_sorted = filtered.sort_values(BATCH_COL)
-
-fig_lr = go.Figure()
-
-fig_lr.add_trace(go.Scatter(
-    x=filtered_sorted[BATCH_COL],
-    y=filtered_sorted[PRIMARY_DE_COL],
-    mode='markers+lines',
+# ---------- Primary dE Value ----------
+fig_de = go.Figure()
+fig_de.add_trace(go.Scatter(
+    x=filtered['x_str'],
+    y=filtered[PRIMARY_DE_COL],
+    mode='markers',
     marker=dict(size=8, color='#1f77b4'),
     line=dict(color='#1f77b4', width=1),
-    text=[f"Batch: {b}<br>Primary dE Value: {lr}" for b, lr in zip(filtered_sorted[BATCH_COL], filtered_sorted[PRIMARY_DE_COL])],
+    text=[f"Batch: {b}<br>Primary dE: {de}<br>{x_col}: {xv}" 
+          for b, de, xv in zip(filtered[BATCH_COL], filtered[PRIMARY_DE_COL], filtered['x_str'])],
     hoverinfo='text'
 ))
-
-fig_lr.update_layout(
+fig_de.update_layout(
     title="Primary dE Value Distribution",
-    xaxis_title="Batch No",
+    xaxis_title=x_title,
     yaxis_title="Primary dE",
-    xaxis=dict(tickangle=-45),
+    xaxis=dict(type='category', tickangle=-45),
     height=450,
     plot_bgcolor="white",
     hovermode="closest"
 )
-
-# ---------- Add horizontal red lines ----------
-fig_lr.add_hline(y=0.9, line_dash="dash", line_color="red", annotation_text="⬇️ Low dE", annotation_position="top left",line_width=1)
-fig_lr.add_hline(y=3, line_dash="dash", line_color="red", annotation_text="⬆️ Shade out", annotation_position="top left",line_width=1)
-
-
-st.plotly_chart(fig_lr, use_container_width=True)
+fig_de.add_hline(y=0.9, line_dash="dash", line_color="red",
+                  annotation_text="⬇️ Low dE", annotation_position="top left", line_width=1)
+fig_de.add_hline(y=3, line_dash="dash", line_color="red",
+                  annotation_text="⬆️ Shade out", annotation_position="top left", line_width=1)
+st.plotly_chart(fig_de, use_container_width=True)
